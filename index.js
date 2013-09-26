@@ -26,7 +26,7 @@ util.inherits(module.exports, Organel);
 module.exports.prototype.message = function(chemical, callback) {
     var self = this;
     
-    var target = (chemical.root || this.config.root || "")+(chemical.style || this.config.style);
+    var target = (chemical.root || this.config.root || "")+(chemical.style || chemical.target || this.config.style);
     if(target.indexOf(".less") === -1)
         target += ".less";
 
