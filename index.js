@@ -3,6 +3,7 @@ var Organel = require("organic").Organel;
 var path = require("path");
 var less = require("less");
 var fs = require("fs");
+var isAbsolute = require("absolute-path")
 
 module.exports = function BundleStyle(plasma, config){
 
@@ -15,7 +16,7 @@ module.exports = function BundleStyle(plasma, config){
 
     if(config.cwd)
       for(var key in config.cwd)
-        config[key] = process.cwd()+config.cwd[key];
+        config[key] = path.join(process.cwd(),config.cwd[key]);
     this.config = config;
     this.on("BundleStyle", this.message);
 
@@ -25,8 +26,10 @@ util.inherits(module.exports, Organel);
 
 module.exports.prototype.message = function(chemical, callback) {
     var self = this;
-    
-    var target = (chemical.root || this.config.root || "")+(chemical.style || chemical.target || this.config.style);
+
+    var target = (chemical.style || chemical.target || this.config.style);
+    if(!isAbsolute(target))
+        target = (chemical.root || this.config.root || "")+target
     if(target.indexOf(".less") === -1)
         target += ".less";
 
@@ -40,8 +43,7 @@ module.exports.prototype.message = function(chemical, callback) {
         switch(type) {
             case ".less":
                 var lessConfig = chemical.less || this.config.less || {};
-                lessConfig.rootpath = path.dirname(target);
-                fs.readFile(target, 'utf8', parseLessFile(target, lessConfig, function(err, css){
+                fs.readFile(target, 'utf8', this.parseLessFile(target, lessConfig, function(err, css){
                     if(err) {
                         err.message += " while trying to parse "+target;
                         throw err;
@@ -57,12 +59,12 @@ module.exports.prototype.message = function(chemical, callback) {
     }
 }
 
-var parseLessFile = function(input, options, callback){
+module.exports.prototype.parseLessFile = function(input, options, callback){
+    var self = this
     return function (e, data) {
         if(e) return callback(e);
-
         new(less.Parser)({
-            paths: [path.dirname(input)].concat(options.paths || []),
+            paths: [path.dirname(input), self.config.root].concat(options.paths || []),
             optimization: options.optimization || 1,
             filename: input,
             rootpath: options.rootpath,
